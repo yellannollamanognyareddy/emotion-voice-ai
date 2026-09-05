@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMORA AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b12;--surface:#0f1320;--surface2:#161d30;
+  --border:rgba(96,200,255,0.12);
+  --accent:#40e0ff;--accent2:#ff6b9d;--accent3:#ffd166;
+  --text:#dde8f5;--text-muted:#5a7090;
+  --idle:#40e0ff;--active:#60a5fa;--recording:#f87171;--speaking:#ffd166;--error:#fb923c;
+  --radius:18px;
+}
+[data-theme="light"]{
+  --bg:#eef2f8;--surface:#fff;--surface2:#e4eaf4;
+  --border:rgba(0,100,200,0.1);--text:#0f1828;--text-muted:#607080;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:16px 14px 40px;transition:background .4s,color .4s;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 55% 45% at 15% 15%,rgba(64,224,255,.06) 0%,transparent 65%),
+    radial-gradient(ellipse 45% 55% at 85% 85%,rgba(64,128,255,.05) 0%,transparent 65%);
+}
+.wrapper{position:relative;z-index:1;width:100%;max-width:980px;display:flex;flex-direction:column;align-items:center;gap:14px}
+
+/* ── HEADER ── */
+header{width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 2px;animation:fadeDown .5s ease both}
+.logo-group{display:flex;align-items:center;gap:12px}
+.logo-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#00ffe0,#4080ff);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 20px rgba(0,255,224,.35);flex-shrink:0}
+.logo-text{display:flex;flex-direction:column;gap:1px}
+.logo-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(110deg,#40e0ff 0%,#a0f0ff 50%,#4080ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.logo-sub{font-size:9px;color:var(--text-muted);letter-spacing:3px;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:8px}
+.theme-toggle{background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:5px 12px;cursor:pointer;font-size:11px;color:var(--text-muted);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;transition:all .2s}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.lang-toggle{background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:3px;display:flex;align-items:center;gap:2px}
+.lang-btn{padding:4px 12px;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text-muted);transition:all .2s;letter-spacing:.5px}
+.lang-btn.active{background:linear-gradient(110deg,#40e0ff,#4080ff);color:#080b12;box-shadow:0 0 10px rgba(64,224,255,.4)}
+
+/* ── STATUS BAR ── */
+.status-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:50px;padding:6px 18px;font-size:12px;font-weight:500;animation:fadeDown .6s ease both;width:100%;max-width:520px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--idle);box-shadow:0 0 8px var(--idle);flex-shrink:0;transition:all .4s}
+.status-dot.active{background:var(--active);box-shadow:0 0 8px var(--active);animation:blink .8s infinite}
+.status-dot.recording{background:var(--recording);box-shadow:0 0 8px var(--recording);animation:blink .6s infinite}
+.status-dot.speaking{background:var(--speaking);box-shadow:0 0 8px var(--speaking);animation:blink 1s infinite}
+.status-dot.error{background:var(--error);box-shadow:0 0 8px var(--error)}
+#status-label{color:var(--text-muted);transition:color .4s;flex:1}
+#status-label.idle{color:var(--accent)}
+#status-label.active{color:var(--active)}
+#status-label.recording{color:var(--recording)}
+#status-label.speaking{color:var(--speaking)}
+#status-label.error{color:var(--error)}
+
+/* ── CONTROLS (moved to top) ── */
+.controls{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:10px;animation:fadeDown .7s ease both}
+.controls-row{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;align-items:center}
+.controls-divider{width:1px;height:32px;background:var(--border);flex-shrink:0}
+@media(max-width:560px){.controls-divider{display:none}}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:all .2s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;position:relative;overflow:hidden}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.btn:active{transform:translateY(0) scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn-icon{font-size:13px}
+.btn-camera{border-color:rgba(64,224,255,.3);color:var(--accent)}
+.btn-camera:hover{border-color:var(--accent);background:rgba(64,224,255,.08)}
+.btn-detect-start{border-color:rgba(96,165,250,.3);color:var(--active)}
+.btn-detect-start:hover{border-color:var(--active);background:rgba(96,165,250,.08)}
+.btn-detect-start.is-on{border-color:var(--active);background:rgba(96,165,250,.12);animation:pulseBlue 2s ease infinite}
+.btn-detect-stop{border-color:rgba(248,113,113,.3);color:var(--recording)}
+.btn-detect-stop:hover{border-color:var(--recording);background:rgba(248,113,113,.08)}
+.btn-rec-start{border-color:rgba(248,113,113,.3);color:var(--recording)}
+.btn-rec-start:hover{border-color:var(--recording);background:rgba(248,113,113,.08)}
+.btn-rec-start.is-recording{border-color:var(--recording);background:rgba(248,113,113,.12);animation:pulseRed 1.4s ease infinite}
+.btn-rec-stop{border-color:rgba(248,113,113,.2);color:var(--text-muted)}
+.btn-rec-stop:hover{border-color:var(--recording);color:var(--recording);background:rgba(248,113,113,.06)}
+.btn-audio-stop{border-color:rgba(255,209,102,.3);color:var(--speaking)}
+.btn-audio-stop:hover{border-color:var(--speaking);background:rgba(255,209,102,.08)}
+.btn-audio-stop.is-playing{border-color:var(--speaking);background:rgba(255,209,102,.12);animation:pulseGold 1.8s ease infinite}
+
+/* ── MAIN GRID ── */
+.main-grid{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:16px;animation:fadeUp .7s ease both}
+@media(max-width:680px){.main-grid{grid-template-columns:1fr}}
+
+/* ── CHARACTER PANEL ── */
+.char-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:400px;box-shadow:0 0 36px rgba(64,224,255,.07),0 4px 28px rgba(0,0,0,.4);transition:box-shadow .4s}
+.char-panel.speaking-glow{box-shadow:0 0 0 1.5px var(--speaking),0 0 50px rgba(255,209,102,.2),0 4px 28px rgba(0,0,0,.4)}
+.char-bg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 50% at 50% 100%,rgba(64,224,255,.07) 0%,transparent 70%)}
+.scan-line{position:absolute;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,rgba(64,224,255,.45),transparent);animation:scanMove 5s ease-in-out infinite;top:0;z-index:3}
+@keyframes scanMove{0%,100%{top:0%;opacity:0}8%{opacity:1}92%{opacity:.4}99%{top:100%;opacity:0}}
+.char-name-tag{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(8,11,18,.75);backdrop-filter:blur(10px);border:1px solid rgba(64,224,255,.25);border-radius:50px;padding:3px 14px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:700;white-space:nowrap;text-shadow:0 0 10px var(--accent);z-index:4}
+.char-emotion-badge{position:absolute;top:10px;right:10px;background:rgba(8,11,18,.8);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:10px;padding:4px 9px;font-size:11px;display:flex;align-items:center;gap:5px;opacity:0;transform:scale(.85);transition:opacity .3s,transform .3s;z-index:4}
+.char-emotion-badge.visible{opacity:1;transform:scale(1)}
+.char-svg-wrap{position:relative;z-index:2;width:230px;margin-bottom:4px;filter:drop-shadow(0 10px 36px rgba(0,0,0,.65))}
+#emora-svg{width:100%;height:auto;overflow:visible}
+.emotion-ring{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:180px;height:7px;border-radius:50%;background:rgba(64,224,255,.2);box-shadow:0 0 12px rgba(64,224,255,.3);transition:background .5s,box-shadow .5s;pointer-events:none;z-index:1}
+.emotion-ring.happy,.emotion-ring.excited{background:rgba(126,255,100,.3);box-shadow:0 0 20px rgba(126,255,100,.55)}
+.emotion-ring.sad{background:rgba(96,165,250,.3);box-shadow:0 0 20px rgba(96,165,250,.55)}
+.emotion-ring.angry{background:rgba(248,113,113,.3);box-shadow:0 0 20px rgba(248,113,113,.55)}
+.emotion-ring.surprised{background:rgba(255,209,102,.3);box-shadow:0 0 20px rgba(255,209,102,.55)}
+.emotion-ring.fearful,.emotion-ring.anxious{background:rgba(167,139,250,.3);box-shadow:0 0 20px rgba(167,139,250,.55)}
+
+/* ── VIDEO PANEL ── */
+.video-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;min-height:400px;display:flex;flex-direction:column;box-shadow:0 4px 28px rgba(0,0,0,.4);transition:box-shadow .4s}
+.video-panel.recording-glow{box-shadow:0 0 0 1.5px var(--recording),0 0 45px rgba(248,113,113,.2)}
+.video-inner{position:relative;flex:1;background:#050710;min-height:350px}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#canvas{display:none}
+.cam-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-muted);font-size:13px}
+.cam-placeholder .cam-icon{font-size:40px;opacity:.25}
+.video-label{position:absolute;top:10px;left:10px;background:rgba(8,11,18,.7);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:50px;padding:3px 11px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);font-weight:600}
+.recording-indicator{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:5px;background:rgba(8,11,18,.75);backdrop-filter:blur(8px);border:1px solid rgba(248,113,113,.4);border-radius:50px;padding:3px 9px;opacity:0;transition:opacity .3s}
+.recording-indicator.visible{opacity:1}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--recording);animation:blink .7s infinite}
+.rec-label{font-size:10px;color:var(--recording);font-weight:700;letter-spacing:1.5px}
+.thinking-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,11,18,.65);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}
+.thinking-overlay.visible{opacity:1}
+.thinking-dots{display:flex;gap:8px}
+.thinking-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:bounce 1.4s ease-in-out infinite}
+.thinking-dot:nth-child(2){animation-delay:.2s;background:var(--active)}
+.thinking-dot:nth-child(3){animation-delay:.4s;background:var(--accent2)}
+
+/* ── BOTTOM ROW ── */
+.bottom-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:14px;animation:fadeUp .9s ease both}
+@media(max-width:680px){.bottom-row{grid-template-columns:1fr}}
+
+/* ── TRANSCRIPT ── */
+.transcript-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:none;max-height:160px;overflow-y:auto}
+.transcript-box.visible{display:block}
+.section-label{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.transcript-row{display:flex;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+.transcript-you{color:var(--accent);font-size:11px;font-weight:600;min-width:36px}
+.transcript-emora{color:var(--speaking);font-size:11px;font-weight:600;min-width:36px}
+.transcript-text{font-size:12px;color:var(--text);line-height:1.5;flex:1}
+
+/* ── EMOTION HISTORY ── */
+.emotion-history{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px}
+.history-track{display:flex;gap:6px;align-items:center;min-height:32px;flex-wrap:wrap}
+.history-chip{background:var(--surface2);border:1px solid var(--border);border-radius:50px;padding:2px 10px;font-size:11px;display:flex;align-items:center;gap:4px;animation:chipIn .3s ease both}
+.history-empty{color:var(--text-muted);font-size:11px;font-style:italic}
+
+/* ── QUEUE INDICATOR ── */
+.queue-indicator{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);background:rgba(8,11,18,.85);border:1px solid rgba(255,209,102,.4);border-radius:50px;padding:3px 12px;font-size:10px;color:var(--speaking);display:none;white-space:nowrap;z-index:5}
+.queue-indicator.visible{display:block}
+
+/* ── ANIMATIONS ── */
+@keyframes pulseBlue{0%,100%{box-shadow:0 0 0 0 rgba(96,165,250,.4)}50%{box-shadow:0 0 0 5px rgba(96,165,250,0)}}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.4)}50%{box-shadow:0 0 0 5px rgba(248,113,113,0)}}
+@keyframes pulseGold{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.4)}50%{box-shadow:0 0 0 5px rgba(255,209,102,0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-10px)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes chipIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes headIdle{0%,100%{transform:rotate(0deg) translateY(0)}28%{transform:rotate(-1.2deg) translateY(-1px)}72%{transform:rotate(1.2deg) translateY(1px)}}
+@keyframes headTilt{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-7deg)}}
+@keyframes headNod{0%,100%{transform:translateY(0) rotate(0deg)}32%{transform:translateY(3px) rotate(2deg)}65%{transform:translateY(-1px) rotate(-.8deg)}}
+@keyframes jacketGlow{0%,100%{opacity:.4;filter:brightness(1)}50%{opacity:1;filter:brightness(1.7)}}
+@keyframes eyeGlow{0%,100%{opacity:.25}50%{opacity:.8}}
+@media(max-width:600px){.logo-title{font-size:20px}.logo-icon{width:38px;height:38px;font-size:18px}.btn{padding:7px 10px;font-size:11px}.char-svg-wrap{width:190px}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- HEADER -->
+<header>
+  <div class="logo-group">
+    <div class="logo-icon">🤖</div>
+    <div class="logo-text">
+      <div class="logo-title">EMORA AI</div>
+      <div class="logo-sub">Emotion-Aware Assistant</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="lang-toggle">
+      <button class="lang-btn" id="lang-tel" onclick="setLanguage('telugu')">తె</button>
+      <button class="lang-btn active" id="lang-eng" onclick="setLanguage('english')">EN</button>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <span id="theme-icon">☀️</span><span id="theme-label">Light</span>
+    </button>
+  </div>
+</header>
+
+<!-- STATUS -->
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-label" class="idle">Idle — Ready</span>
+</div>
+
+<!-- CONTROLS (at top) -->
+<div class="controls">
+  <div class="controls-row">
+    <button class="btn btn-camera" id="btn-camera" onclick="startCamera()">
+      <span class="btn-icon">📷</span> Start Camera
+    </button>
+    <div class="controls-divider"></div>
+    <button class="btn btn-detect-start" id="btn-detect-start" onclick="startDetection()">
+      <span class="btn-icon">🎭</span> Start Detection
+    </button>
+    <button class="btn btn-detect-stop" id="btn-detect-stop" onclick="stopDetection()">
+      <span class="btn-icon">⏹</span> Stop Detection
+    </button>
+    <div class="controls-divider"></div>
+    <button class="btn btn-rec-start" id="btn-rec-start" onclick="startRecording()">
+      <span class="btn-icon">🎤</span> <span id="rec-start-label">Start Speaking</span>
+    </button>
+    <button class="btn btn-rec-stop" id="btn-rec-stop" onclick="stopRecording()">
+      <span class="btn-icon">⏹</span> <span id="rec-stop-label">Stop Speaking</span>
+    </button>
+    <div class="controls-divider"></div>
+    <button class="btn btn-audio-stop" id="btn-audio-stop" onclick="stopAudio()">
+      <span class="btn-icon">🔇</span> Stop Audio
+    </button>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- CHARACTER PANEL -->
+  <div class="char-panel" id="char-panel">
+    <div class="char-bg"></div>
+    <div class="scan-line"></div>
+    <div class="char-name-tag">EMORA · v2.4</div>
+    <div class="char-emotion-badge" id="char-emotion-badge">
+      <span id="char-badge-emoji">😐</span>
+      <span id="char-badge-label">Neutral</span>
+    </div>
+    <div class="char-svg-wrap">
+<!-- Full SVG character (identical to original) -->
+<svg id="emora-svg" viewBox="0 0 220 400" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="gSkin" cx="50%" cy="38%" r="58%">
+    <stop offset="0%" stop-color="#fad5aa"/><stop offset="65%" stop-color="#e8b480"/><stop offset="100%" stop-color="#d09060"/>
+  </radialGradient>
+  <linearGradient id="gHair" x1="0%" y1="0%" x2="80%" y2="100%">
+    <stop offset="0%" stop-color="#1c1008"/><stop offset="100%" stop-color="#2e1a0a"/>
+  </linearGradient>
+  <linearGradient id="gHairHL" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="rgba(50,180,255,0)"/><stop offset="45%" stop-color="rgba(50,180,255,0.6)"/><stop offset="100%" stop-color="rgba(50,180,255,0)"/>
+  </linearGradient>
+  <linearGradient id="gJacket" x1="15%" y1="0%" x2="85%" y2="100%">
+    <stop offset="0%" stop-color="#1a2848"/><stop offset="55%" stop-color="#0e1830"/><stop offset="100%" stop-color="#080d1e"/>
+  </linearGradient>
+  <linearGradient id="gJacketHL" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#20305a"/><stop offset="100%" stop-color="#121e3a"/>
+  </linearGradient>
+  <linearGradient id="gShirt" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#1c3858"/><stop offset="100%" stop-color="#0e1e30"/>
+  </linearGradient>
+  <linearGradient id="gNeonH" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="rgba(64,224,255,0)"/><stop offset="50%" stop-color="rgba(64,224,255,1)"/><stop offset="100%" stop-color="rgba(64,224,255,0)"/>
+  </linearGradient>
+  <linearGradient id="gNeonV" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="rgba(64,224,255,0)"/><stop offset="45%" stop-color="rgba(64,224,255,.85)"/><stop offset="100%" stop-color="rgba(64,224,255,0)"/>
+  </linearGradient>
+  <radialGradient id="gIris" cx="38%" cy="32%" r="65%">
+    <stop offset="0%" stop-color="#70d8ff"/><stop offset="45%" stop-color="#2070b8"/><stop offset="100%" stop-color="#082848"/>
+  </radialGradient>
+  <radialGradient id="gEyeGlowFill" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="rgba(64,224,255,0.65)"/><stop offset="100%" stop-color="rgba(64,224,255,0)"/>
+  </radialGradient>
+  <radialGradient id="gHoloBadge" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="rgba(64,224,255,0.45)"/><stop offset="100%" stop-color="rgba(64,224,255,0.04)"/>
+  </radialGradient>
+  <filter id="fGlow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="2.5" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="fFaceShadow">
+    <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.55)"/>
+  </filter>
+  <clipPath id="clipEyeL">
+    <path d="M67,106 Q74,95 84,95 Q94,95 101,106 Q94,117 84,117 Q74,117 67,106Z"/>
+  </clipPath>
+  <clipPath id="clipEyeR">
+    <path d="M119,106 Q126,95 136,95 Q146,95 153,106 Q146,117 136,117 Q126,117 119,106Z"/>
+  </clipPath>
+</defs>
+<g id="body-group" style="animation:breathe 3.8s ease-in-out infinite;transform-origin:110px 290px">
+  <path d="M96,167 Q95,180 93,188 L127,188 Q125,180 124,167 Z" fill="url(#gSkin)"/>
+  <path d="M106,167 Q104,180 102,188 L118,188 Q116,180 115,167 Z" fill="rgba(0,0,0,0.1)"/>
+  <path d="M28,222 Q20,265 18,330 Q18,358 22,375 L198,375 Q202,358 202,330 Q200,265 192,222 Q165,206 148,200 L110,195 L72,200 Q55,206 28,222 Z" fill="url(#gJacket)"/>
+  <path d="M28,222 Q20,265 18,330 L110,330 L110,195 L72,200 Q55,206 28,222 Z" fill="url(#gJacketHL)" opacity="0.5"/>
+  <path d="M87,193 Q89,214 89,228 L131,228 Q131,214 133,193 Q122,198 110,199 Q98,198 87,193 Z" fill="url(#gShirt)"/>
+  <path d="M89,194 Q99,202 110,202 Q121,202 131,194" stroke="rgba(64,200,255,.3)" stroke-width="1.2" fill="none"/>
+  <path d="M87,193 Q82,204 80,220 Q88,215 110,212 Z" fill="#0c1428"/>
+  <path d="M133,193 Q138,204 140,220 Q132,215 110,212 Z" fill="#0c1428"/>
+  <path d="M87,193 Q82,204 80,220" stroke="rgba(64,200,255,.45)" stroke-width="1.1" fill="none"/>
+  <path d="M133,193 Q138,204 140,220" stroke="rgba(64,200,255,.45)" stroke-width="1.1" fill="none"/>
+  <g style="animation:jacketGlow 2.8s ease-in-out infinite">
+    <path d="M52,242 L66,242 L66,256 L80,256" stroke="url(#gNeonH)" stroke-width="1.3" fill="none" stroke-linecap="round" opacity=".75"/>
+    <circle cx="52" cy="242" r="2.2" fill="#40e0ff" opacity=".85"/>
+    <circle cx="80" cy="256" r="1.6" fill="#40e0ff" opacity=".7"/>
+  </g>
+  <g style="animation:jacketGlow 2.8s ease-in-out infinite;animation-delay:.8s">
+    <path d="M168,242 L154,242 L154,256 L140,256" stroke="url(#gNeonH)" stroke-width="1.3" fill="none" stroke-linecap="round" opacity=".75"/>
+    <circle cx="168" cy="242" r="2.2" fill="#40e0ff" opacity=".85"/>
+    <circle cx="140" cy="256" r="1.6" fill="#40e0ff" opacity=".7"/>
+  </g>
+  <g style="animation:jacketGlow 3.4s ease-in-out infinite;animation-delay:1.3s">
+    <path d="M72,268 L72,298 L84,298" stroke="url(#gNeonV)" stroke-width="1.1" fill="none" opacity=".65"/>
+  </g>
+  <g style="animation:jacketGlow 3.4s ease-in-out infinite;animation-delay:2s">
+    <path d="M148,268 L148,298 L136,298" stroke="url(#gNeonV)" stroke-width="1.1" fill="none" opacity=".65"/>
+  </g>
+  <g style="animation:jacketGlow 4.2s ease-in-out infinite;animation-delay:.4s">
+    <path d="M72,322 Q110,316 148,322" stroke="rgba(64,200,255,.45)" stroke-width="1" fill="none" stroke-dasharray="5,4"/>
+  </g>
+  <circle cx="36" cy="228" r="2.5" fill="rgba(64,200,255,.65)" style="animation:jacketGlow 2.1s ease-in-out infinite"/>
+  <circle cx="184" cy="228" r="2.5" fill="rgba(64,200,255,.65)" style="animation:jacketGlow 2.1s ease-in-out infinite;animation-delay:.6s"/>
+  <g id="holo-badge" style="animation:jacketGlow 2.3s ease-in-out infinite;animation-delay:.2s" filter="url(#fGlow)">
+    <polygon points="110,224 120,229 120,240 110,245 100,240 100,229" fill="url(#gHoloBadge)" stroke="rgba(64,224,255,.85)" stroke-width="1.3"/>
+    <text x="110" y="238" text-anchor="middle" font-size="8.5" fill="#40e0ff" font-family="monospace" font-weight="bold">AI</text>
+    <polygon points="110,221 123,227 123,242 110,248 97,242 97,227" fill="none" stroke="rgba(64,224,255,.28)" stroke-width="2.2"/>
+  </g>
+  <path d="M20,373 Q20,378 24,380 L196,380 Q200,378 200,373 Z" fill="rgba(64,200,255,.07)" stroke="rgba(64,200,255,.14)" stroke-width="1"/>
+  <path d="M28,222 Q10,256 8,316 Q10,328 22,330 Q38,330 42,316 Q50,272 58,248 Z" fill="url(#gJacket)"/>
+  <ellipse cx="17" cy="325" rx="12" ry="10" fill="url(#gSkin)"/>
+  <path d="M192,222 Q210,256 212,316 Q210,328 198,330 Q182,330 178,316 Q170,272 162,248 Z" fill="url(#gJacket)"/>
+  <ellipse cx="203" cy="325" rx="12" ry="10" fill="url(#gSkin)"/>
+</g>
+<g id="head-group" style="transform-origin:110px 120px;animation:headIdle 5s ease-in-out infinite">
+  <ellipse cx="60" cy="116" rx="10" ry="14" fill="url(#gSkin)"/>
+  <ellipse cx="61.5" cy="116" rx="5.5" ry="9" fill="rgba(170,90,50,.3)"/>
+  <ellipse cx="160" cy="116" rx="10" ry="14" fill="url(#gSkin)"/>
+  <ellipse cx="158.5" cy="116" rx="5.5" ry="9" fill="rgba(170,90,50,.3)"/>
+  <path id="face-path" d="M75,70 Q70,72 68,82 Q63,100 63,118 Q62,138 67,152 Q76,166 92,172 Q101,175 110,175 Q119,175 128,172 Q144,166 153,152 Q158,138 157,118 Q157,100 152,82 Q150,72 145,70 Q130,58 110,56 Q90,58 75,70 Z" fill="url(#gSkin)" filter="url(#fFaceShadow)"/>
+  <ellipse cx="76" cy="130" rx="14" ry="10" fill="rgba(190,110,60,.13)" transform="rotate(-12,76,130)"/>
+  <ellipse cx="144" cy="130" rx="14" ry="10" fill="rgba(190,110,60,.13)" transform="rotate(12,144,130)"/>
+  <path d="M75,70 Q72,52 78,42 Q89,32 110,30 Q131,32 142,42 Q148,52 145,70 Q138,48 110,46 Q82,48 75,70 Z" fill="url(#gHair)"/>
+  <path d="M68,82 Q62,64 68,52 Q72,42 80,38 Q68,50 68,82 Z" fill="url(#gHair)"/>
+  <path d="M152,82 Q158,64 152,52 Q148,42 140,38 Q152,50 152,82 Z" fill="url(#gHair)"/>
+  <path d="M120,31 Q126,36 130,50 Q133,60 131,72" stroke="url(#gHairHL)" stroke-width="4" fill="none" stroke-linecap="round" opacity=".85"/>
+  <path id="brow-left"  d="M72,90 Q82,84 96,87"  stroke="#281408" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <path id="brow-right" d="M124,87 Q138,84 148,90" stroke="#281408" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="84"  cy="107" rx="17" ry="13" fill="rgba(130,70,30,.14)"/>
+  <ellipse cx="136" cy="107" rx="17" ry="13" fill="rgba(130,70,30,.14)"/>
+  <path d="M67,106 Q74,95 84,95 Q94,95 101,106 Q94,117 84,117 Q74,117 67,106Z" fill="white"/>
+  <path d="M119,106 Q126,95 136,95 Q146,95 153,106 Q146,117 136,117 Q126,117 119,106Z" fill="white"/>
+  <g id="eye-left">
+    <circle cx="84"  cy="106" r="9.5" fill="url(#gIris)" clip-path="url(#clipEyeL)"/>
+    <circle cx="84"  cy="106" r="5.8" fill="#051828" clip-path="url(#clipEyeL)"/>
+    <circle cx="84"  cy="106" r="3.6" fill="#020e1a" clip-path="url(#clipEyeL)"/>
+    <circle cx="80.5" cy="103" r="2.2" fill="white" opacity=".92" clip-path="url(#clipEyeL)"/>
+    <circle id="eye-glow-l" cx="84" cy="106" r="10" fill="url(#gEyeGlowFill)" clip-path="url(#clipEyeL)" style="animation:eyeGlow 3s ease-in-out infinite"/>
+  </g>
+  <g id="eye-right">
+    <circle cx="136" cy="106" r="9.5" fill="url(#gIris)" clip-path="url(#clipEyeR)"/>
+    <circle cx="136" cy="106" r="5.8" fill="#051828" clip-path="url(#clipEyeR)"/>
+    <circle cx="136" cy="106" r="3.6" fill="#020e1a" clip-path="url(#clipEyeR)"/>
+    <circle cx="132.5" cy="103" r="2.2" fill="white" opacity=".92" clip-path="url(#clipEyeR)"/>
+    <circle id="eye-glow-r" cx="136" cy="106" r="10" fill="url(#gEyeGlowFill)" clip-path="url(#clipEyeR)" style="animation:eyeGlow 3s ease-in-out infinite;animation-delay:.4s"/>
+  </g>
+  <path id="eyelid-lt" d="M67,106 Q74,95 84,95 Q94,95 101,106"  fill="url(#gSkin)" opacity="0"/>
+  <path id="eyelid-lb" d="M67,106 Q74,117 84,117 Q94,117 101,106" fill="url(#gSkin)" opacity="0"/>
+  <path id="eyelid-rt" d="M119,106 Q126,95 136,95 Q146,95 153,106" fill="url(#gSkin)" opacity="0"/>
+  <path id="eyelid-rb" d="M119,106 Q126,117 136,117 Q146,117 153,106" fill="url(#gSkin)" opacity="0"/>
+  <line x1="68"  y1="102" x2="67"  y2="97"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="74"  y1="97"  x2="73"  y2="92"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="84"  y1="95"  x2="84"  y2="90"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="94"  y1="97"  x2="95"  y2="92"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="100" y1="102" x2="101" y2="97"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="120" y1="102" x2="119" y2="97"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="126" y1="97"  x2="125" y2="92"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="136" y1="95"  x2="136" y2="90"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="146" y1="97"  x2="147" y2="92"  stroke="#160804" stroke-width="1.1"/>
+  <line x1="152" y1="102" x2="153" y2="97"  stroke="#160804" stroke-width="1.1"/>
+  <ellipse id="think-halo-l" cx="84"  cy="106" rx="0" ry="0" fill="none" stroke="#40e0ff" stroke-width="1.5" opacity="0"/>
+  <ellipse id="think-halo-r" cx="136" cy="106" rx="0" ry="0" fill="none" stroke="#40e0ff" stroke-width="1.5" opacity="0"/>
+  <path d="M107,120 Q104,132 104,137 Q107,141 110,141 Q113,141 116,137 Q116,132 113,120" fill="none" stroke="rgba(170,90,50,.45)" stroke-width="1.5" stroke-linecap="round"/>
+  <g id="mouth-group">
+    <path id="upper-lip" d="M91,149 Q100,144 107,146 Q110,143 113,146 Q120,144 129,149 Q120,153 110,152 Q100,153 91,149Z" fill="#b86848"/>
+    <path id="lower-lip" d="M91,149 Q100,153 110,154 Q120,153 129,149 Q123,160 110,161 Q97,160 91,149Z" fill="#cc7858"/>
+    <ellipse id="mouth-interior" cx="110" cy="153" rx="0" ry="0" fill="#180606"/>
+    <rect id="teeth" x="101" y="151" width="18" height="4.5" rx="2.2" fill="#eeeeee" opacity="0"/>
+    <ellipse id="tongue" cx="110" cy="157" rx="0" ry="0" fill="#c84848" opacity=".78"/>
+    <path id="smile-l" d="M89,148 Q84,154 87,160" fill="none" stroke="rgba(185,110,70,.6)" stroke-width="1.3" opacity="0" stroke-linecap="round"/>
+    <path id="smile-r" d="M131,148 Q136,154 133,160" fill="none" stroke="rgba(185,110,70,.6)" stroke-width="1.3" opacity="0" stroke-linecap="round"/>
+  </g>
+  <ellipse id="blush-l" cx="73" cy="128" rx="12" ry="8" fill="rgba(255,130,110,0)" transform="rotate(-12,73,128)"/>
+  <ellipse id="blush-r" cx="147" cy="128" rx="12" ry="8" fill="rgba(255,130,110,0)" transform="rotate(12,147,128)"/>
+  <g id="sweat-drop" opacity="0">
+    <path d="M154,86 Q158,77 162,86 Q162,93 158,94 Q154,93 154,86Z" fill="#70d8ff" opacity=".85"/>
+  </g>
+  <g id="tear-l" opacity="0">
+    <path d="M75,114 Q73,122 75,130 Q77,122 75,114Z" fill="#58b8ff" opacity=".82"/>
+  </g>
+</g>
+<ellipse id="glow-ring" cx="110" cy="392" rx="0" ry="0" fill="#40e0ff" opacity="0.12"/>
+</svg>
+    </div>
+    <div class="queue-indicator" id="queue-indicator">⏳ <span id="queue-count">0</span> queued</div>
+    <div class="emotion-ring" id="emotion-ring"></div>
+  </div>
+
+  <!-- VIDEO PANEL -->
+  <div class="video-panel" id="video-panel">
+    <div class="video-inner">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas"></canvas>
+      <div class="cam-placeholder" id="cam-placeholder">
+        <div class="cam-icon">📷</div>
+        <span>Camera not started</span>
+      </div>
+      <div class="video-label">LIVE FEED</div>
+      <div class="recording-indicator" id="recording-indicator">
+        <div class="rec-dot"></div>
+        <span class="rec-label">REC</span>
+      </div>
+      <div class="thinking-overlay" id="thinking-overlay">
+        <div class="thinking-dots">
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="bottom-row">
+  <div class="transcript-box" id="transcript-box">
+    <div class="section-label">Conversation</div>
+    <div id="transcript-content"></div>
+  </div>
+  <div class="emotion-history">
+    <div class="section-label">Emotion History</div>
+    <div class="history-track" id="history-track">
+      <span class="history-empty">No emotions detected yet</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrapper -->
+
+<script>
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let isDetecting    = false;
+let isRecording    = false;
+let isSpeaking     = false;
+let isDark         = true;
+let currentEmotion = 'neutral';
+let emotionHistory = [];
+let currentLang    = 'english';
+let audioUnlocked  = false;
+
+// Emotion queue: holds {emotion, response, audio} objects
+// When AI is speaking, new detections are dropped (not queued)
+// to prevent pile-up. Only the LATEST queued item plays next.
+let pendingEmotion = null;  // At most one pending item
+
+let captureInterval  = null;
+let lipSyncInterval  = null;
+let blinkTimeout     = null;
+let isBlinking       = false;
+
+let mediaRecorder  = null;
+let audioChunks    = [];
+let micStream      = null;
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition         = null;
+let englishTranscript   = '';
+
+window._currentPlayer    = null;
+window._pendingAudioPath = null;
+
+const EMOTION_EMOJIS = {
+  happy:'😄', sad:'😢', angry:'😠', surprised:'😲',
+  fearful:'😨', disgusted:'🤢', neutral:'😐', confused:'😕',
+  calm:'😌', excited:'🤩', tired:'😴', anxious:'😰', thinking:'🤔'
+};
+
+/* ═══════════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════════ */
+const video             = document.getElementById('video');
+const canvas            = document.getElementById('canvas');
+const statusDot         = document.getElementById('status-dot');
+const statusLabel       = document.getElementById('status-label');
+const videoPanel        = document.getElementById('video-panel');
+const charPanel         = document.getElementById('char-panel');
+const camPlaceholder    = document.getElementById('cam-placeholder');
+const recIndicator      = document.getElementById('recording-indicator');
+const thinkingOverlay   = document.getElementById('thinking-overlay');
+const historyTrack      = document.getElementById('history-track');
+const charBadge         = document.getElementById('char-emotion-badge');
+const charBadgeEmoji    = document.getElementById('char-badge-emoji');
+const charBadgeLabel    = document.getElementById('char-badge-label');
+const emotionRing       = document.getElementById('emotion-ring');
+const transcriptBox     = document.getElementById('transcript-box');
+const transcriptContent = document.getElementById('transcript-content');
+const queueIndicator    = document.getElementById('queue-indicator');
+const queueCount        = document.getElementById('queue-count');
+const headGroup         = document.getElementById('head-group');
+const browLeft          = document.getElementById('brow-left');
+const browRight         = document.getElementById('brow-right');
+const eyelidLT          = document.getElementById('eyelid-lt');
+const eyelidLB          = document.getElementById('eyelid-lb');
+const eyelidRT          = document.getElementById('eyelid-rt');
+const eyelidRB          = document.getElementById('eyelid-rb');
+const upperLip          = document.getElementById('upper-lip');
+const lowerLip          = document.getElementById('lower-lip');
+const mouthInt          = document.getElementById('mouth-interior');
+const teeth             = document.getElementById('teeth');
+const tongue            = document.getElementById('tongue');
+const smileL            = document.getElementById('smile-l');
+const smileR            = document.getElementById('smile-r');
+const blushL            = document.getElementById('blush-l');
+const blushR            = document.getElementById('blush-r');
+const sweatDrop         = document.getElementById('sweat-drop');
+const tearL             = document.getElementById('tear-l');
+const glowRing          = document.getElementById('glow-ring');
+const thinkHL           = document.getElementById('think-halo-l');
+const thinkHR           = document.getElementById('think-halo-r');
+const eyeGlowL          = document.getElementById('eye-glow-l');
+const eyeGlowR          = document.getElementById('eye-glow-r');
+
+/* ═══════════════════════════════════════════════
+   STATUS
+═══════════════════════════════════════════════ */
+function setStatus(msg, type = 'idle') {
+  statusLabel.textContent = msg;
+  statusLabel.className   = type;
+  statusDot.className     = 'status-dot' + (type !== 'idle' ? ' ' + type : '');
+}
+
+/* ═══════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════ */
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'light');
+  document.getElementById('theme-icon').textContent  = isDark ? '☀️' : '🌙';
+  document.getElementById('theme-label').textContent = isDark ? 'Light' : 'Dark';
+}
+
+/* ═══════════════════════════════════════════════
+   AUDIO UNLOCK
+═══════════════════════════════════════════════ */
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(ctx.destination); src.start(0);
+    ctx.resume().then(() => { audioUnlocked = true; });
+  } catch(e) { audioUnlocked = true; }
+}
+
+/* ═══════════════════════════════════════════════
+   INTERNAL PLAY — Telugu audio file
+   Calls onFinished() when done or on error
+═══════════════════════════════════════════════ */
+function _doPlay(path, onFinished) {
+  if (window._currentPlayer) {
+    window._currentPlayer.pause();
+    window._currentPlayer.src = '';
+    window._currentPlayer = null;
+  }
+
+  const player = new Audio(path);
+  window._currentPlayer = player;
+  isSpeaking = true;
+  setStatus('EMORA Speaking…', 'speaking');
+  document.getElementById('btn-audio-stop').classList.add('is-playing');
+  startLipSync();
+
+  const done = () => {
+    isSpeaking = false;
+    stopLipSync();
+    document.getElementById('btn-audio-stop').classList.remove('is-playing');
+    window._currentPlayer = null;
+    if (onFinished) onFinished();
+    else _afterSpeakDone();
+  };
+
+  player.play().catch((e) => {
+    console.error('Play failed:', e);
+    // Store for retry on next click
+    window._pendingAudioPath = path;
+    window._pendingOnFinished = onFinished;
+    isSpeaking = false;
+    stopLipSync();
+    document.getElementById('btn-audio-stop').classList.remove('is-playing');
+    setStatus('Tap anywhere to hear EMORA', 'error');
+  });
+
+  player.onended = done;
+  player.onerror = done;
+}
+
+function _afterSpeakDone() {
+  // Check if there's a pending emotion to speak about
+  if (pendingEmotion && isDetecting) {
+    const next = pendingEmotion;
+    pendingEmotion = null;
+    updateQueueUI();
+    _speakEmotionItem(next);
+  } else {
+    pendingEmotion = null;
+    updateQueueUI();
+    if (isDetecting) setStatus('Detecting emotions…', 'active');
+    else setStatus('Idle — Ready', 'idle');
+  }
+}
+
+function updateQueueUI() {
+  if (pendingEmotion) {
+    queueCount.textContent = '1';
+    queueIndicator.classList.add('visible');
+  } else {
+    queueIndicator.classList.remove('visible');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   LANGUAGE TOGGLE — full reset
+═══════════════════════════════════════════════ */
+function setLanguage(lang) {
+  // Stop everything
+  stopAllMedia();
+
+  currentLang = lang;
+  document.getElementById('lang-eng').classList.toggle('active', lang === 'english');
+  document.getElementById('lang-tel').classList.toggle('active', lang === 'telugu');
+
+  pendingEmotion = null;
+  updateQueueUI();
+
+  if (lang === 'english') {
+    transcriptBox.classList.add('visible');
+    document.getElementById('rec-start-label').textContent = 'Start Speaking';
+    document.getElementById('rec-stop-label').textContent  = 'Stop Speaking';
+    setStatus('English mode — Ready', 'idle');
+  } else {
+    transcriptBox.classList.remove('visible');
+    document.getElementById('rec-start-label').textContent = 'Start Recording';
+    document.getElementById('rec-stop-label').textContent  = 'Stop Recording';
+    setStatus('Telugu mode — Ready', 'idle');
+  }
+}
+
+function stopAllMedia() {
+  // Cancel TTS
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  // Cancel audio player
+  if (window._currentPlayer) {
+    window._currentPlayer.pause();
+    window._currentPlayer.src = '';
+    window._currentPlayer = null;
+  }
+  window._pendingAudioPath = null;
+  window._pendingOnFinished = null;
+
+  // Stop detection
+  if (isDetecting) {
+    isDetecting = false;
+    clearInterval(captureInterval);
+    captureInterval = null;
+    document.getElementById('btn-detect-start').classList.remove('is-on');
+  }
+
+  // Stop recording
+  if (isRecording) {
+    if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      try { mediaRecorder.stop(); } catch(e){}
+    }
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    isRecording = false;
+    document.getElementById('btn-rec-start').classList.remove('is-recording');
+    recIndicator.classList.remove('visible');
+    videoPanel.classList.remove('recording-glow');
+  }
+
+  isSpeaking = false;
+  stopLipSync();
+  document.getElementById('btn-audio-stop').classList.remove('is-playing');
+  thinkingOverlay.classList.remove('visible');
+  headGroup.style.animation = 'headIdle 5s ease-in-out infinite';
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTON 1 — CAMERA
+═══════════════════════════════════════════════ */
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    camPlaceholder.style.display = 'none';
+    document.getElementById('btn-camera').disabled = true;
+    setStatus('Camera active', 'active');
+  } catch(e) {
+    setStatus('Camera access denied', 'error');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTON 2/3 — DETECTION
+═══════════════════════════════════════════════ */
+function startDetection() {
+  if (isDetecting)      { setStatus('Detection already running', 'active'); return; }
+  if (isRecording)      { setStatus('Stop recording first', 'error'); return; }
+  if (!video.srcObject) { setStatus('Start camera first', 'error'); return; }
+  isDetecting = true;
+  pendingEmotion = null;
+  updateQueueUI();
+  document.getElementById('btn-detect-start').classList.add('is-on');
+  captureInterval = setInterval(captureFrame, 3000); // 3s to avoid flood
+  setStatus('Detecting emotions…', 'active');
+}
+
+function stopDetection() {
+  if (!isDetecting) { setStatus('Detection not running', 'idle'); return; }
+  isDetecting = false;
+  clearInterval(captureInterval);
+  captureInterval = null;
+  pendingEmotion = null;
+  updateQueueUI();
+  document.getElementById('btn-detect-start').classList.remove('is-on');
+  if (!isSpeaking) setStatus('Detection stopped — Idle', 'idle');
+}
+
+/* ── Capture frame & call backend ── */
+function captureFrame() {
+  // Don't capture if currently speaking (prevent pile-up)
+  if (!isDetecting || isSpeaking) return;
+
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  const image  = canvas.toDataURL('image/png');
+  const params = new URLSearchParams({ image, lang: currentLang });
+
+  fetch('/receive_image/', { method: 'POST', body: params })
+    .then(r => r.json())
+    .then(data => {
+      if (!isDetecting) return;
+      if (data.error)   return;
+
+      const emotion  = data.emotion;
+      const response = data.response || '';
+      const audio    = data.audio    || '';
+
+      // Update emotion display
+      if (emotion) showEmotion(emotion);
+
+      if (isSpeaking) {
+        // AI is talking — store as pending (overwrite old pending)
+        pendingEmotion = { emotion, response, audio };
+        updateQueueUI();
+        return;
+      }
+
+      // Speak now
+      _speakEmotionItem({ emotion, response, audio });
+    })
+    .catch(() => {});
+}
+
+function _speakEmotionItem(item) {
+  const { emotion, response, audio } = item;
+  if (emotion) showEmotion(emotion);
+
+  if (currentLang === 'english') {
+    if (response) speakEnglishTTS(response, _afterSpeakDone);
+  } else {
+    if (audio) _doPlay(audio, _afterSpeakDone);
+    else _afterSpeakDone();
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTON 4 — START RECORDING
+═══════════════════════════════════════════════ */
+async function startRecording() {
+  if (isRecording) { setStatus('Already recording', 'recording'); return; }
+  if (isDetecting) { setStatus('Stop detection first', 'error'); return; }
+  if (isSpeaking)  { setStatus('Wait for EMORA to finish', 'error'); return; }
+
+  unlockAudio();
+
+  if (currentLang === 'english') startEnglishListening();
+  else startTeluguRecording();
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTON 5 — STOP RECORDING
+═══════════════════════════════════════════════ */
+function stopRecording() {
+  if (!isRecording) { setStatus('Not recording', 'idle'); return; }
+  if (currentLang === 'english') stopEnglishListening();
+  else stopTeluguRecording();
+}
+
+/* ══════════════════════
+   ENGLISH VOICE FLOW
+══════════════════════ */
+function startEnglishListening() {
+  if (!SpeechRecognition) { setStatus('Speech recognition not supported', 'error'); return; }
+  englishTranscript = '';
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-IN';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) englishTranscript += event.results[i][0].transcript + ' ';
+      else interim += event.results[i][0].transcript;
+    }
+    if (interim) setStatus('Listening: ' + interim.slice(0, 40) + '…', 'recording');
+  };
+
+  recognition.onerror = (e) => {
+    setStatus('Mic error: ' + e.error, 'error');
+    isRecording = false;
+    document.getElementById('btn-rec-start').classList.remove('is-recording');
+    recIndicator.classList.remove('visible');
+    videoPanel.classList.remove('recording-glow');
+    headGroup.style.animation = 'headIdle 5s ease-in-out infinite';
+  };
+
+  recognition.start();
+  isRecording = true;
+  document.getElementById('btn-rec-start').classList.add('is-recording');
+  recIndicator.classList.add('visible');
+  videoPanel.classList.add('recording-glow');
+  headGroup.style.animation = 'headNod 1.2s ease-in-out infinite';
+  setStatus('Listening… Speak now', 'recording');
+}
+
+function stopEnglishListening() {
+  if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+  isRecording = false;
+  document.getElementById('btn-rec-start').classList.remove('is-recording');
+  recIndicator.classList.remove('visible');
+  videoPanel.classList.remove('recording-glow');
+  headGroup.style.animation = 'headIdle 5s ease-in-out infinite';
+
+  const text = englishTranscript.trim();
+  if (!text) { setStatus('Nothing heard — try again', 'idle'); return; }
+
+  setStatus('Thinking…', 'active');
+  thinkingOverlay.classList.add('visible');
+  applyEmotion('thinking');
+  addTranscriptLine('you', text);
+
+  fetch('/english_voice_input/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text })
+  })
+  .then(r => r.json())
+  .then(data => {
+    thinkingOverlay.classList.remove('visible');
+    if (data.response) {
+      addTranscriptLine('emora', data.response);
+      // Direct voice answer — use neutral emotion context
+      speakEnglishTTS(data.response, () => {
+        applyEmotion(currentEmotion);
+        setStatus('Idle — Ready', 'idle');
+      });
+    } else {
+      applyEmotion(currentEmotion);
+      setStatus('Idle — Ready', 'idle');
+    }
+  })
+  .catch(() => {
+    thinkingOverlay.classList.remove('visible');
+    applyEmotion(currentEmotion);
+    setStatus('Network error', 'error');
+  });
+}
+
+/* ── English TTS using Web Speech API ── */
+function speakEnglishTTS(text, onDone) {
+  if (!window.speechSynthesis) {
+    setStatus('TTS not supported', 'error');
+    if (onDone) onDone();
+    return;
+  }
+  window.speechSynthesis.cancel();
+
+  const doSpeak = () => {
+    const utter  = new SpeechSynthesisUtterance(text);
+    utter.lang   = 'en-IN';
+    utter.rate   = 0.5;
+    utter.pitch  = 1;
+    utter.volume = 1;
+    const voices  = window.speechSynthesis.getVoices();
+    const enVoice = voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (enVoice) utter.voice = enVoice;
+
+    isSpeaking = true;
+    setStatus('EMORA Speaking…', 'speaking');
+    document.getElementById('btn-audio-stop').classList.add('is-playing');
+    startLipSync();
+
+    const finish = () => {
+      isSpeaking = false;
+      stopLipSync();
+      document.getElementById('btn-audio-stop').classList.remove('is-playing');
+      if (onDone) onDone();
+      else _afterSpeakDone();
+    };
+
+    utter.onend   = finish;
+    utter.onerror = finish;
+    window.speechSynthesis.speak(utter);
+  };
+
+  if (window.speechSynthesis.getVoices().length > 0) doSpeak();
+  else window.speechSynthesis.onvoiceschanged = doSpeak;
+}
+
+function addTranscriptLine(who, text) {
+  const row   = document.createElement('div');
+  row.className = 'transcript-row';
+  const label = document.createElement('span');
+  label.className   = who === 'you' ? 'transcript-you' : 'transcript-emora';
+  label.textContent = who === 'you' ? 'You' : 'EMORA';
+  const msg = document.createElement('span');
+  msg.className   = 'transcript-text';
+  msg.textContent = text;
+  row.appendChild(label);
+  row.appendChild(msg);
+  transcriptContent.appendChild(row);
+  transcriptBox.scrollTop = transcriptBox.scrollHeight;
+}
+
+/* ══════════════════════
+   TELUGU VOICE FLOW
+══════════════════════ */
+async function startTeluguRecording() {
+  try {
+    audioChunks = [];
+    micStream   = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(micStream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = sendVoiceAudio;
+    mediaRecorder.start();
+    isRecording = true;
+    document.getElementById('btn-rec-start').classList.add('is-recording');
+    recIndicator.classList.add('visible');
+    videoPanel.classList.add('recording-glow');
+    headGroup.style.animation = 'headNod 1.2s ease-in-out infinite';
+    setStatus('Recording… Speak now', 'recording');
+  } catch(e) {
+    setStatus('Microphone access denied', 'error');
+  }
+}
+
+function stopTeluguRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  isRecording = false;
+  document.getElementById('btn-rec-start').classList.remove('is-recording');
+  recIndicator.classList.remove('visible');
+  videoPanel.classList.remove('recording-glow');
+  headGroup.style.animation = 'headIdle 5s ease-in-out infinite';
+  setStatus('Processing voice…', 'active');
+  thinkingOverlay.classList.add('visible');
+  applyEmotion('thinking');
+}
+
+function sendVoiceAudio() {
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  const blob = new Blob(audioChunks, { type: 'audio/wav' });
+  const fd   = new FormData();
+  fd.append('audio', blob, 'recording.wav');
+
+  fetch('/voice_input/', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      thinkingOverlay.classList.remove('visible');
+      if (data.emotion) showEmotion(data.emotion);
+      if (data.audio) {
+        _doPlay(data.audio, () => {
+          applyEmotion(currentEmotion);
+          setStatus('Idle — Ready', 'idle');
+        });
+      } else {
+        applyEmotion(currentEmotion);
+        setStatus('Idle — Ready', 'idle');
+      }
+    })
+    .catch(() => {
+      thinkingOverlay.classList.remove('visible');
+      applyEmotion(currentEmotion);
+      setStatus('Voice backend error', 'error');
+    });
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTON 6 — STOP AUDIO
+═══════════════════════════════════════════════ */
+function stopAudio() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+  if (window._currentPlayer) {
+    window._currentPlayer.pause();
+    window._currentPlayer.src = '';
+    window._currentPlayer = null;
+  }
+
+  window._pendingAudioPath    = null;
+  window._pendingOnFinished   = null;
+  pendingEmotion              = null;
+  isSpeaking                  = false;
+  updateQueueUI();
+  stopLipSync();
+  document.getElementById('btn-audio-stop').classList.remove('is-playing');
+
+  if (isDetecting) setStatus('Detecting emotions…', 'active');
+  else setStatus('Audio stopped — Idle', 'idle');
+}
+
+/* ═══════════════════════════════════════════════
+   EMOTION DISPLAY
+═══════════════════════════════════════════════ */
+function showEmotion(emotion) {
+  const key = emotion.toLowerCase();
+  const em  = EMOTION_EMOJIS[key] || '🤔';
+  charBadgeEmoji.textContent = em;
+  charBadgeLabel.textContent = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+  charBadge.classList.add('visible');
+  applyEmotion(key);
+  currentEmotion = key;
+  emotionRing.className = 'emotion-ring ' + key;
+  if (!isSpeaking) setStatus('Emotion: ' + emotion, 'active');
+  emotionHistory.push({ emoji: em, label: key });
+  if (emotionHistory.length > 10) emotionHistory.shift();
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!emotionHistory.length) {
+    historyTrack.innerHTML = '<span class="history-empty">No emotions detected yet</span>';
+    return;
+  }
+  historyTrack.innerHTML = emotionHistory.map((e, i) =>
+    `<div class="history-chip" style="animation-delay:${i*.04}s">
+       <span>${e.emoji}</span><span>${e.label}</span>
+     </div>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   BLINK
+═══════════════════════════════════════════════ */
+function doBlink() {
+  if (isBlinking) return;
+  isBlinking = true;
+  eyelidLT.setAttribute('opacity','1'); eyelidLT.setAttribute('d','M67,106 Q74,108 84,108 Q94,108 101,106');
+  eyelidLB.setAttribute('opacity','1'); eyelidLB.setAttribute('d','M67,106 Q74,104 84,104 Q94,104 101,106');
+  eyelidRT.setAttribute('opacity','1'); eyelidRT.setAttribute('d','M119,106 Q126,108 136,108 Q146,108 153,106');
+  eyelidRB.setAttribute('opacity','1'); eyelidRB.setAttribute('d','M119,106 Q126,104 136,104 Q146,104 153,106');
+  setTimeout(() => {
+    eyelidLT.setAttribute('d','M67,106 Q74,95 84,95 Q94,95 101,106');
+    eyelidLB.setAttribute('d','M67,106 Q74,117 84,117 Q94,117 101,106');
+    eyelidRT.setAttribute('d','M119,106 Q126,95 136,95 Q146,95 153,106');
+    eyelidRB.setAttribute('d','M119,106 Q126,117 136,117 Q146,117 153,106');
+    eyelidLT.setAttribute('opacity','0'); eyelidLB.setAttribute('opacity','0');
+    eyelidRT.setAttribute('opacity','0'); eyelidRB.setAttribute('opacity','0');
+    isBlinking = false;
+    blinkTimeout = setTimeout(doBlink, 2400 + Math.random() * 4200);
+  }, 135);
+}
+blinkTimeout = setTimeout(doBlink, 1800);
+
+/* ═══════════════════════════════════════════════
+   RESET FACE
+═══════════════════════════════════════════════ */
+function resetFace() {
+  browLeft.setAttribute('d',  'M72,90 Q82,84 96,87');
+  browRight.setAttribute('d', 'M124,87 Q138,84 148,90');
+  upperLip.setAttribute('d',  'M91,149 Q100,144 107,146 Q110,143 113,146 Q120,144 129,149 Q120,153 110,152 Q100,153 91,149Z');
+  lowerLip.setAttribute('d',  'M91,149 Q100,153 110,154 Q120,153 129,149 Q123,160 110,161 Q97,160 91,149Z');
+  mouthInt.setAttribute('rx','0'); mouthInt.setAttribute('ry','0');
+  teeth.setAttribute('opacity','0');
+  tongue.setAttribute('rx','0'); tongue.setAttribute('ry','0');
+  smileL.setAttribute('opacity','0'); smileR.setAttribute('opacity','0');
+  blushL.setAttribute('fill','rgba(255,130,110,0)');
+  blushR.setAttribute('fill','rgba(255,130,110,0)');
+  sweatDrop.setAttribute('opacity','0');
+  tearL.setAttribute('opacity','0');
+  thinkHL.setAttribute('rx','0'); thinkHL.setAttribute('opacity','0');
+  thinkHR.setAttribute('rx','0'); thinkHR.setAttribute('opacity','0');
+  eyeGlowL.setAttribute('fill','url(#gEyeGlowFill)');
+  eyeGlowR.setAttribute('fill','url(#gEyeGlowFill)');
+  headGroup.style.animation = 'headIdle 5s ease-in-out infinite';
+  glowRing.setAttribute('rx','0'); glowRing.setAttribute('ry','0');
+}
+
+/* ═══════════════════════════════════════════════
+   APPLY EMOTION
+═══════════════════════════════════════════════ */
+function applyEmotion(e) {
+  resetFace();
+  if (e === 'happy' || e === 'excited') {
+    browLeft.setAttribute('d',  'M72,87 Q82,80 96,83');
+    browRight.setAttribute('d', 'M124,83 Q138,80 148,87');
+    upperLip.setAttribute('d',  'M91,149 Q100,141 107,142 Q110,139 113,142 Q120,141 129,149 Q120,151 110,150 Q100,151 91,149Z');
+    lowerLip.setAttribute('d',  'M91,149 Q100,157 110,159 Q120,157 129,149 Q123,165 110,166 Q97,165 91,149Z');
+    mouthInt.setAttribute('cx','110'); mouthInt.setAttribute('cy','156');
+    mouthInt.setAttribute('rx','14'); mouthInt.setAttribute('ry','7');
+    teeth.setAttribute('opacity','1');
+    smileL.setAttribute('opacity','1'); smileR.setAttribute('opacity','1');
+    blushL.setAttribute('fill','rgba(255,130,110,0.30)');
+    blushR.setAttribute('fill','rgba(255,130,110,0.30)');
+    glowRing.setAttribute('rx','80'); glowRing.setAttribute('ry','9');
+  } else if (e === 'sad') {
+    browLeft.setAttribute('d',  'M72,88 Q82,93 96,90');
+    browRight.setAttribute('d', 'M124,90 Q138,93 148,88');
+    upperLip.setAttribute('d',  'M91,151 Q100,148 110,149 Q120,148 129,151 Q120,153 110,153 Q100,153 91,151Z');
+    lowerLip.setAttribute('d',  'M91,151 Q100,152 110,152 Q120,152 129,151 Q123,156 110,157 Q97,156 91,151Z');
+    tearL.setAttribute('opacity','1');
+    headGroup.style.animation = 'none';
+    headGroup.style.transform = 'rotate(4deg) translateY(3px)';
+  } else if (e === 'angry') {
+    browLeft.setAttribute('d',  'M72,93 Q82,87 96,92');
+    browRight.setAttribute('d', 'M124,92 Q138,87 148,93');
+    eyeGlowL.setAttribute('fill','rgba(255,60,60,0.5)');
+    eyeGlowR.setAttribute('fill','rgba(255,60,60,0.5)');
+  } else if (e === 'surprised') {
+    browLeft.setAttribute('d',  'M72,84 Q82,76 96,79');
+    browRight.setAttribute('d', 'M124,79 Q138,76 148,84');
+    mouthInt.setAttribute('cx','110'); mouthInt.setAttribute('cy','155');
+    mouthInt.setAttribute('rx','11'); mouthInt.setAttribute('ry','9');
+  } else if (e === 'fearful' || e === 'anxious') {
+    browLeft.setAttribute('d',  'M72,87 Q82,81 96,85');
+    browRight.setAttribute('d', 'M124,85 Q138,81 148,87');
+    sweatDrop.setAttribute('opacity','1');
+  } else if (e === 'confused' || e === 'thinking') {
+    browLeft.setAttribute('d',  'M72,89 Q82,84 96,88');
+    browRight.setAttribute('d', 'M124,84 Q138,89 148,86');
+    headGroup.style.animation = 'headTilt 3.5s ease-in-out infinite';
+    thinkHL.setAttribute('rx','14'); thinkHL.setAttribute('ry','12'); thinkHL.setAttribute('opacity','1');
+    thinkHR.setAttribute('rx','14'); thinkHR.setAttribute('ry','12'); thinkHR.setAttribute('opacity','1');
+  } else if (e === 'calm') {
+    blushL.setAttribute('fill','rgba(255,130,110,0.10)');
+    blushR.setAttribute('fill','rgba(255,130,110,0.10)');
+  } else if (e === 'disgusted') {
+    browLeft.setAttribute('d',  'M72,91 Q82,86 96,90');
+    browRight.setAttribute('d', 'M124,87 Q138,91 148,87');
+    upperLip.setAttribute('d',  'M91,150 Q98,145 105,148 Q110,143 115,148 Q122,145 129,151 Q120,153 110,152 Q100,153 91,150Z');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   LIP SYNC
+═══════════════════════════════════════════════ */
+const lipFrames = [
+  () => {
+    upperLip.setAttribute('d','M91,149 Q100,144 107,146 Q110,143 113,146 Q120,144 129,149 Q120,153 110,152 Q100,153 91,149Z');
+    lowerLip.setAttribute('d','M91,149 Q100,153 110,154 Q120,153 129,149 Q123,160 110,161 Q97,160 91,149Z');
+    mouthInt.setAttribute('rx','0'); mouthInt.setAttribute('ry','0');
+    teeth.setAttribute('opacity','0'); tongue.setAttribute('rx','0');
+  },
+  () => {
+    upperLip.setAttribute('d','M91,147 Q100,142 110,143 Q120,142 129,147 Q120,149 110,148 Q100,149 91,147Z');
+    lowerLip.setAttribute('d','M91,147 Q100,155 110,157 Q120,155 129,147 Q123,163 110,164 Q97,163 91,147Z');
+    mouthInt.setAttribute('cx','110'); mouthInt.setAttribute('cy','153');
+    mouthInt.setAttribute('rx','13'); mouthInt.setAttribute('ry','6');
+    teeth.setAttribute('opacity','.9'); tongue.setAttribute('rx','6'); tongue.setAttribute('ry','3.5');
+  },
+  () => {
+    upperLip.setAttribute('d','M93,144 Q101,138 110,140 Q119,138 127,144 Q119,146 110,145 Q101,146 93,144Z');
+    lowerLip.setAttribute('d','M93,144 Q101,155 110,158 Q119,155 127,144 Q122,166 110,168 Q98,166 93,144Z');
+    mouthInt.setAttribute('cx','110'); mouthInt.setAttribute('cy','154');
+    mouthInt.setAttribute('rx','14'); mouthInt.setAttribute('ry','11');
+    teeth.setAttribute('opacity','1'); tongue.setAttribute('rx','7'); tongue.setAttribute('ry','5.5');
+  },
+  () => {
+    upperLip.setAttribute('d','M87,148 Q99,142 110,143 Q121,142 133,148 Q121,150 110,149 Q99,150 87,148Z');
+    lowerLip.setAttribute('d','M87,148 Q99,152 110,153 Q121,152 133,148 Q121,155 110,156 Q99,155 87,148Z');
+    mouthInt.setAttribute('cx','110'); mouthInt.setAttribute('cy','150');
+    mouthInt.setAttribute('rx','20'); mouthInt.setAttribute('ry','3');
+    teeth.setAttribute('opacity','1'); tongue.setAttribute('rx','0');
+  },
+  () => {
+    upperLip.setAttribute('d','M99,146 Q104,140 110,141 Q116,140 121,146 Q116,147 110,146 Q104,147 99,146Z');
+    lowerLip.setAttribute('d','M99,146 Q104,155 110,157 Q116,155 121,146 Q117,163 110,164 Q103,163 99,146Z');
+    mouthInt.setAttribute('cx','110'); mouthInt.setAttribute('cy','153');
+    mouthInt.setAttribute('rx','8'); mouthInt.setAttribute('ry','9');
+    teeth.setAttribute('opacity','.45'); tongue.setAttribute('rx','4.5'); tongue.setAttribute('ry','3.5');
+  }
+];
+
+function startLipSync() {
+  if (lipSyncInterval) return;
+  charPanel.classList.add('speaking-glow');
+  glowRing.setAttribute('rx','85'); glowRing.setAttribute('ry','10');
+  headGroup.style.animation = 'headNod 0.88s ease-in-out infinite';
+  const weights = [1,3,3,2,2], total = 11;
+  lipSyncInterval = setInterval(() => {
+    let r = Math.random() * total, cum = 0;
+    for (let i = 0; i < weights.length; i++) {
+      cum += weights[i];
+      if (r < cum) { lipFrames[i](); break; }
+    }
+  }, 108);
+}
+
+function stopLipSync() {
+  if (lipSyncInterval) { clearInterval(lipSyncInterval); lipSyncInterval = null; }
+  lipFrames[0]();
+  charPanel.classList.remove('speaking-glow');
+  glowRing.setAttribute('rx','0'); glowRing.setAttribute('ry','0');
+  headGroup.style.animation = 'headIdle 5s ease-in-out infinite';
+  applyEmotion(currentEmotion);
+}
+
+/* ═══════════════════════════════════════════════
+   GLOBAL CLICK — unlock audio & retry pending
+═══════════════════════════════════════════════ */
+document.addEventListener('click', function() {
+  unlockAudio();
+  if (window._pendingAudioPath && audioUnlocked) {
+    const path = window._pendingAudioPath;
+    const cb   = window._pendingOnFinished;
+    window._pendingAudioPath  = null;
+    window._pendingOnFinished = null;
+    _doPlay(path, cb);
+  }
+});
+
+// Init in English mode
+setLanguage('english');
+</script>
+</body>
+</html>
